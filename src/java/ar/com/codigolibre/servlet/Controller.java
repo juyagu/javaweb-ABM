@@ -3,9 +3,11 @@ package ar.com.codigolibre.servlet;
 
 import ar.com.codigolibre.entities.Producto;
 import ar.com.codigolibre.repositories.ProductoRepository;
+import com.google.gson.Gson;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.beans.PropertyVetoException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
+
 
 
 @WebServlet(name="ps",urlPatterns="/action/*")
@@ -70,6 +73,31 @@ public class Controller extends HttpServlet{
 		pr.saves(p);
 		mensajes.add("Guardado exitoso");
 	    }
+	}else if(action.equals("modificar")){
+	    Long id = Long.parseLong(req.getParameter("id"));
+	    
+	    String presentacion = req.getParameter("presentacion");
+	    String descripcion = req.getParameter("descripcion");
+	    
+	    Float precio = 0.0f;
+	    try{
+		precio = Float.parseFloat(req.getParameter("precio"));
+	    }catch (NumberFormatException ex) {
+                mensajes.add("El precio no es numerico");
+            }
+	    
+	    Integer cantidad = 0;
+	    try{
+		cantidad = Integer.parseInt(req.getParameter("cantidad"));
+	    }catch (NumberFormatException ex) {
+                mensajes.add("La cantidad ingresada no es numerica");
+            }
+	    
+	    if(mensajes.isEmpty()){
+		Producto p = new Producto(id,presentacion,cantidad,precio,descripcion);
+		pr.update(p);
+		mensajes.add("Actualización exitosa");
+	    }
 	}
 	
 	List<Producto> productos = pr.getAll();
@@ -99,6 +127,22 @@ public class Controller extends HttpServlet{
 	cpds.setMaxPoolSize(20);
 	
 	return cpds;
+    }
+    
+    @Override
+    public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	ProductoRepository pr = null;
+	try{
+	    pr = new ProductoRepository(datasource.getConnection());
+	}catch (SQLException ex) {
+            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+        }
+	Long id = Long.parseLong(req.getParameter("id"));
+	Producto producto = pr.getById(id);
+	String json = new Gson().toJson(producto);
+	resp.setContentType("application/json");
+	resp.setCharacterEncoding("UTF-8");
+	resp.getWriter().write(json);
     }
     
 }
